@@ -2,6 +2,8 @@ mod utils;
 use std::env;
 use std::path::Path;
 use tempfile;
+use async_std::task;
+use futures::stream::{FuturesUnordered, StreamExt};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -9,6 +11,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _gwpath = Path::new(&args[1]);
     let addons_arg = args[2].split_whitespace();
     let mut addons = Vec::new();
+
+    let mut futures = FuturesUnordered::new();
 
     for name in addons_arg {
         let ext;
@@ -35,9 +39,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     for addon in addons {
-        println!("Downloading -> {}", addon.name);
-        let _r = utils::download_addon(addon).await;   
-        println!("Done");
+        futures.push(utils::download_addon(addon));
     }
+    task::block_on(async {
+        while let Some(res) = futures.next().await {
+            match res {
+                Ok(value) => println!("{:#?}", value),
+                Err(e) => println!("Got error back: {}", e),
+            }
+        }
+    });
     Ok(())
 }

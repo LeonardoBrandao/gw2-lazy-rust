@@ -16,7 +16,7 @@ pub struct Asset {
   pub browser_download_url: String,
 }
 
-pub async fn download_addon(addon: Addon) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn download_addon(addon: Addon) -> Result<String, Box<dyn std::error::Error>> {
   let res = reqwest::Client::new()
     .get(addon.download_url)
     .header("Accept", "application/vnd.github.v3+json")
@@ -25,6 +25,5 @@ pub async fn download_addon(addon: Addon) -> Result<(), Box<dyn std::error::Erro
     .await?;
 
   let git_info = res.json::<Vec<ReleaseInfo>>().await?;
-  println!("{:#?}", git_info[0].assets[0].browser_download_url);
-  Ok(())
+  Ok(git_info[0].assets[0].browser_download_url.to_string())
 }
